@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tic Tac Toe — Play</title>
+
+<style>
+:root {
+--bg:#0f172a; --card:#0b1220; --accent:#06b6d4; --muted:#94a3b8;
+}
+*{box-sizing:border-box}
+html,body{
+height:100%;margin:0;
+font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;
+background:linear-gradient(180deg,#071126 0%,#081026 60%);
+color:#e6eef6;
+}
+.center{display:grid;place-items:center;height:100%}
+
+.splash{position:fixed;inset:0;
+background:radial-gradient(circle at 10% 10%, rgba(6,182,212,0.08), transparent 10%), rgba(2,6,23,0.95);
+backdrop-filter:blur(6px);z-index:30;display:flex;align-items:center;justify-content:center}
+.splash-card{
+width:min(520px,92vw);
+background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+border-radius:16px;padding:28px;
+box-shadow:0 10px 30px rgba(2,6,23,0.6);
+border:1px solid rgba(255,255,255,0.03);
+text-align:center}
+.logo{font-weight:700;letter-spacing:1px;font-size:28px;margin-bottom:8px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+
+.mode-btns{display:flex;gap:12px;justify-content:center}
+.btn{
+padding:10px 16px;border-radius:10px;border:none;
+background:rgba(255,255,255,0.03);color:inherit;cursor:pointer;font-weight:600}
+.btn.primary{
+background:linear-gradient(90deg,var(--accent),#7c3aed);
+box-shadow:0 6px 18px rgba(6,182,212,0.08)}
+
+.difficulty-wrapper{position:relative;margin-bottom:12px}
+#difficultyBtn{width:100%;display:flex;justify-content:center;align-items:center;gap:6px}
+.triangle{display:inline-block;width:0;height:0;
+border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid currentColor}
+.difficulty-menu{
+position:absolute;top:110%;left:0;right:0;
+background:var(--card);border-radius:8px;
+border:1px solid rgba(255,255,255,0.05);
+display:none;flex-direction:column;overflow:hidden}
+.difficulty-menu div{padding:8px;cursor:pointer;font-size:14px}
+.difficulty-menu div:hover{background:rgba(255,255,255,0.05)}
+
+.card{width:min(560px,94vw);
+background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+border-radius:14px;padding:18px;
+border:1px solid rgba(255,255,255,0.03);
+box-shadow:0 8px 24px rgba(2,6,23,0.6)}
+
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.title{font-weight:700}
+.controls{display:flex;gap:8px;align-items:flex-start}
+.btn-group{display:flex;flex-direction:column;gap:5px}
+.small{font-size:13px;color:var(--muted)}
+
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px}
+.cell{
+aspect-ratio:1/1;display:grid;place-items:center;
+background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+border-radius:10px;font-size:48px;cursor:pointer;user-select:none;
+border:1px solid rgba(255,255,255,0.03);
+transition:transform .12s}
+.cell:hover{transform:translateY(-4px)}
+
+.status{margin-top:10px;display:flex;justify-content:space-between;align-items:center}
+.restart{padding:8px 12px;border-radius:10px;border:none;background:rgba(255,255,255,0.03);cursor:pointer}
+
+.modal{position:fixed;inset:0;display:grid;place-items:center;
+background:rgba(2,6,23,0.6);z-index:40;backdrop-filter:blur(3px)}
+.modal-card{
+background:var(--card);padding:20px;border-radius:12px;text-align:center;
+border:1px solid rgba(255,255,255,0.03);width:min(420px,92vw)}
+.actions{display:flex;gap:10px;justify-content:center}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+
+@media(max-width:420px){.cell{font-size:36px}}
+</style>
+</head>
+
+<body>
+
+<div id="splash" class="splash">
+<div class="splash-card">
+<div class="logo">TIC TAC TOE ✨</div>
+<div class="sub">Pick a mode — single or two players.</div>
+
+<div class="difficulty-wrapper">
+<button id="difficultyBtn" class="btn">Difficulty <span class="triangle"></span></button>
+<div id="difficultyMenu" class="difficulty-menu">
+<div data-level="easy">Easy</div>
+<div data-level="normal">Normal</div>
+<div data-level="hard">Hard</div>
+<div data-level="hell">Hell</div>
+</div>
+</div>
+
+<div class="mode-btns">
+<button class="btn primary" id="singleBtn">Single Player 🤖</button>
+<button class="btn" id="doubleBtn">Two Players 👥</button>
+</div>
+</div>
+</div>
+
+<div class="center">
+<div class="card">
+<div class="header">
+<div>
+<div class="title">Tic Tac Toe</div>
+<div class="small" id="modeLabel">Mode: —</div>
+</div>
+<div class="controls">
+<div class="small">Turn: <strong id="turnLabel">—</strong></div>
+<div class="btn-group">
+<button class="restart" id="backBtn">Back</button>
+<button class="restart" id="restartBtn">Restart</button>
+</div>
+</div>
+</div>
+
+<div class="board" id="board"></div>
+
+<div class="status">
+<div class="small" id="score">X: 0 • O: 0 • Draws: 0</div>
+<div class="small">Tip: click a cell</div>
+</div>
+</div>
+</div>
+
+<div id="modal" class="modal" style="display:none">
+<div class="modal-card">
+<h2 id="resultTitle">Game Over</h2>
+<p id="resultText"></p>
+<div class="actions">
+<button class="btn primary" id="playAgain">Restart</button>
+<button class="btn ghost" id="modalRestart">Menu</button>
+</div>
+</div>
+</div>
+
+<script>
+const boardEl=document.getElementById('board');
+const turnLabel=document.getElementById('turnLabel');
+const modeLabel=document.getElementById('modeLabel');
+const scoreEl=document.getElementById('score');
+const modal=document.getElementById('modal');
+const resultTitle=document.getElementById('resultTitle');
+const resultText=document.getElementById('resultText');
+const playAgain=document.getElementById('playAgain');
+const modalRestart=document.getElementById('modalRestart');
+const splash=document.getElementById('splash');
+const singleBtn=document.getElementById('singleBtn');
+const doubleBtn=document.getElementById('doubleBtn');
+const backBtn=document.getElementById('backBtn');
+const restartBtn=document.getElementById('restartBtn');
+const difficultyBtn=document.getElementById('difficultyBtn');
+const difficultyMenu=document.getElementById('difficultyMenu');
+
+let board=Array(9).fill(null);
+let currentPlayer='X';
+let mode=null;
+let scores={X:0,O:0,draws:0};
+let gameOver=false;
+let difficulty='normal';
+
+const wins=[
+[0,1,2],[3,4,5],[6,7,8],
+[0,3,6],[1,4,7],[2,5,8],
+[0,4,8],[2,4,6]
+];
+
+// personality
+const winMessages=[
+"You win! 🎉","Congratulations, champ! 🏆","Victory is yours! 😎",
+"Well played! 👏","Impressive win! 🔥","You crushed it! 💪",
+"Winner winner! 🍗","Champion vibes only ✨","Nobody can stop you! 🚀","Legendary! 🐐"
+];
+const loseMessages=[
+"You lost to a bot!!! 🤖😂","Try again next time! 🔄","Outsmarted by code… 😏",
+"Better luck next round 🍀","Don't give up! 💡","Bot 1 - Human 0 ⚡",
+"Ouch, that must hurt 😬","You'll get me next time 😉","Keep practicing 🕹️",
+"U dumb ass player! 💀"
+];
+const hellTaunts=[
+"You can’t play me on Hell 😈","Bow before the machine 🤖🔥",
+"Pathetic attempt, human 💀","I was built for this 😎",
+"You never had a chance ⚡","Hell belongs to me 👹"
+];
+
+difficultyBtn.onclick=()=>{
+difficultyMenu.style.display=
+difficultyMenu.style.display==='flex'?'none':'flex';
+};
+
+difficultyMenu.onclick=e=>{
+if(e.target.dataset.level){
+difficulty=e.target.dataset.level;
+difficultyBtn.innerHTML=`Difficulty: ${difficulty} <span class="triangle"></span>`;
+difficultyMenu.style.display='none';
+}
+};
+
+function renderBoard(){
+boardEl.innerHTML='';
+for(let i=0;i<9;i++){
+const c=document.createElement('div');
+c.className='cell';
+c.dataset.idx=i;
+c.textContent=board[i]||'';
+c.onclick=onCellClick;
+boardEl.appendChild(c);
+}
+}
+
+function onCellClick(e){
+const i=Number(e.currentTarget.dataset.idx);
+if(gameOver||board[i])return;
+
+makeMove(i,currentPlayer);
+
+if(checkWin(board,currentPlayer))return endGame(currentPlayer);
+if(board.every(Boolean))return endGame(null);
+
+switchTurn();
+
+if(mode==='single'&&currentPlayer==='O'){
+setTimeout(botMove,difficulty==='hell'?50:200);
+}
+}
+
+function botMove(){
+const move=findBotMove();
+if(move==null)return;
+
+makeMove(move,'O');
+
+if(checkWin(board,'O'))return endGame('O');
+if(board.every(Boolean))return endGame(null);
+
+switchTurn();
+}
+
+function makeMove(i,p){
+board[i]=p;
+renderBoard();
+}
+
+function switchTurn(){
+currentPlayer=currentPlayer==='X'?'O':'X';
+turnLabel.textContent=currentPlayer;
+}
+
+function endGame(winner){
+gameOver=true;
+modal.style.display='grid';
+
+if(winner){
+resultTitle.textContent=winner+" wins!";
+
+if(mode==='single'&&winner==='O'){
+resultText.textContent=
+(difficulty==='hell')
+? hellTaunts[Math.floor(Math.random()*hellTaunts.length)]
+: loseMessages[Math.floor(Math.random()*loseMessages.length)];
+}
+else if(mode==='single'&&winner==='X'){
+resultText.textContent=
+winMessages[Math.floor(Math.random()*winMessages.length)];
+}
+else{
+resultText.textContent=winner+" took the game.";
+}
+
+scores[winner]++;
+}
+else{
+resultTitle.textContent="It's a draw";
+resultText.textContent="No winners this round.";
+scores.draws++;
+}
+
+updateScore();
+}
+
+function updateScore(){
+scoreEl.textContent=`X: ${scores.X} • O: ${scores.O} • Draws: ${scores.draws}`;
+}
+
+backBtn.onclick=()=>resetAll();
+restartBtn.onclick=()=>resetBoard(false);
+playAgain.onclick=()=>{modal.style.display='none';resetBoard(false);}
+modalRestart.onclick=()=>{modal.style.display='none';resetAll();}
+
+singleBtn.onclick=()=>{mode='single';startGame();}
+doubleBtn.onclick=()=>{mode='double';startGame();}
+
+function startGame(){
+splash.style.display='none';
+gameOver=false;
+board=Array(9).fill(null);
+currentPlayer='X';
+modeLabel.textContent='Mode: '+(mode==='single'?'Single Player':'Two Players');
+turnLabel.textContent=currentPlayer;
+renderBoard();
+}
+
+function resetBoard(clear=true){
+board=Array(9).fill(null);
+gameOver=false;
+currentPlayer='X';
+turnLabel.textContent=currentPlayer;
+renderBoard();
+if(clear){scores={X:0,O:0,draws:0};updateScore();}
+}
+
+function resetAll(){
+resetBoard();
+mode=null;
+modeLabel.textContent='Mode: —';
+splash.style.display='flex';
+}
+
+function checkWin(bd,p){
+return wins.some(line=>line.every(i=>bd[i]===p));
+}
+
+function getWinner(state){
+for(const[a,b,c]of wins){
+if(state[a]&&state[a]===state[b]&&state[a]===state[c])
+return state[a];
+}
+if(state.every(Boolean))return'draw';
+return null;
+}
+
+function findBotMove(){
+if(difficulty==='easy'){
+let moves=board.map((v,i)=>v?null:i).filter(v=>v!=null);
+return moves[Math.floor(Math.random()*moves.length)];
+}
+if(difficulty==='normal')return minimaxMove(board,'O',2);
+if(difficulty==='hard')return minimaxMove(board,'O',5);
+return findBestMove();
+}
+
+function minimaxMove(bd,player,maxDepth){
+const opponent=player==='X'?'O':'X';
+
+function minimax(state,depth,isMax){
+const winner=getWinner(state);
+if(winner===player)return 10-depth;
+if(winner===opponent)return depth-10;
+if(state.every(Boolean)||depth===maxDepth)return 0;
+
+let best=isMax?-Infinity:Infinity;
+
+for(let i=0;i<9;i++){
+if(!state[i]){
+state[i]=isMax?player:opponent;
+let score=minimax(state,depth+1,!isMax);
+state[i]=null;
+best=isMax?Math.max(best,score):Math.min(best,score);
+}
+}
+return best;
+}
+
+let bestScore=-Infinity;
+let move=null;
+
+for(let i=0;i<9;i++){
+if(!bd[i]){
+bd[i]=player;
+let score=minimax(bd,0,false);
+bd[i]=null;
+if(score>bestScore){
+bestScore=score;
+move=i;
+}
+}
+}
+return move;
+}
+
+function findBestMove(){
+let bestScore=-Infinity;
+let move=null;
+
+for(let i=0;i<9;i++){
+if(board[i]==null){
+board[i]='O';
+let score=minimaxFull(board,0,false);
+board[i]=null;
+if(score>bestScore){
+bestScore=score;
+move=i;
+}
+}
+}
+return move;
+}
+
+function minimaxFull(state,depth,isMax){
+const winner=getWinner(state);
+
+if(winner==='O')return 10-depth;
+if(winner==='X')return depth-10;
+if(winner==='draw')return 0;
+
+if(isMax){
+let best=-Infinity;
+for(let i=0;i<9;i++){
+if(state[i]==null){
+state[i]='O';
+best=Math.max(best,minimaxFull(state,depth+1,false));
+state[i]=null;
+}
+}
+return best;
+}else{
+let best=Infinity;
+for(let i=0;i<9;i++){
+if(state[i]==null){
+state[i]='X';
+best=Math.min(best,minimaxFull(state,depth+1,true));
+state[i]=null;
+}
+}
+return best;
+}
+}
+</script>
+</body>
+</html>
